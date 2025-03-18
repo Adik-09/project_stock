@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveStock - Market Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2962ff;
+            --gain-color: #00e676;
+            --loss-color: #ff1744;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #00b4d8, #2962ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .news-ticker {
+            background: var(--card-bg);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .news-ticker::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary-color);
+        }
+
+        .news-label {
+            background: var(--primary-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        .market-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid;
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .gainer {
+            border-color: var(--gain-color);
+        }
+
+        .loser {
+            border-color: var(--loss-color);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+        }
+
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .stock-table th,
+        .stock-table td {
+            padding: 1rem;
+            text-align: left;
+        }
+
+        .stock-table th {
+            background: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .stock-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .change-positive {
+            color: var(--gain-color);
+            font-weight: 500;
+        }
+
+        .change-negative {
+            color: var(--loss-color);
+            font-weight: 500;
+        }
+
+        .watchlist-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+        }
+
+        .watchlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .watchlist-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1 }
+            50% { opacity: 0.5 }
+            100% { opacity: 1 }
+        }
+    </style>
+    <script>
+        let socket = new WebSocket("ws://" + window.location.host + "/ws/stocks/");
+
+        socket.onmessage = function(event) {
+            let stockData = JSON.parse(event.data);
+            console.log("Printing data")
+            let stockTable = document.getElementById("stock-table");
+            stockTable.innerHTML = "";
+
+            console.log(stockData.update)
+
+            stockData.update.forEach(stock => {
+                let row = `<tr>
+                    <td><strong>${stock.ticker}</strong></td>
+                    <td>$${stock.Oprice}</td>
+                    <td>$${stock.Cprice}</td>
+                    <td class="${stock.change >= 0 ? 'change-positive' : 'change-negative'}">
+                        $${stock.change.toFixed(2)}
+                    </td>
+                    <td class="${stock.percent_change >= 0 ? 'change-positive' : 'change-negative'}">
+                        ${stock.percent_change.toFixed(2)}%
+                    </td>
+                    <td>${stock.volume}</td>
+                </tr>`;
+                stockTable.innerHTML += row;
+            });
+        
+
+            let gainerContainer = document.getElementById("top-gainer");
+            gainerContainer.innerHTML = "<h3>Top Gainers</h3>";
+            gainerContainer.innerHTML += "<br>";
+            stockData.top_gainer.forEach(gainer => {
+                gainerContainer.innerHTML += `
+                    <p><strong>${gainer.ticker}</strong></p>
+                    <p>Price: $${gainer.Cprice}</p>
+                    <p>Change: <span class='change-positive'>${gainer.change.toFixed(2)} (${gainer.percent_change.toFixed(2)}%)</span></p>
+                    <hr>
+                `;
+            });
+
+            let loserContainer = document.getElementById("top-loser");
+            loserContainer.innerHTML = "<h3>Top Losers</h3>";
+            loserContainer.innerHTML += "<br>";
+            stockData.top_loser.forEach(loser => {
+                loserContainer.innerHTML += `
+                    <p><strong>${loser.ticker}</strong></p>
+                    <p>Price: $${loser.Cprice}</p>
+                    <p>Change: <span class='change-negative'>${loser.change.toFixed(2)} (${loser.percent_change.toFixed(2)}%)</span></p>
+                    <hr>
+                `;
+            });
+
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>LiveStock</h1>
+            <p>Real-time Market Dashboard & Analytics</p>
+            <div class="news-ticker">
+                <span class="news-label">LIVE</span>
+                <div class="news-content">
+                    📈 NASDAQ +1.2% | Dow Jones +0.8% | S&P 500 +1.0% | Bitcoin $42,000 (+3.5%)
+                </div>
+            </div>
+        </header>
+
+        <div class="watchlist-section">
+            <h2 class="section-title">
+                <i class="fas fa-binoculars"></i>
+                Your Watchlist
+            </h2>
+            <div class="watchlist-grid">
+                {% for tic in tickers %}
+                <a href="/stock_chart/{{tic}}/">
+                    <div class="watchlist-item">
+                        <div class="ticker-info">
+                            <span class="ticker-symbol">{{ tic }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="market-overview">
+            <div class="metric-card gainer" id="top-gainer">Loading...</div>
+            <div class="metric-card loser" id="top-loser">Loading...</div>
+        </div>
+
+        <div class="table">
+            <table class="stock-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Open</th>
+                        <th>Close</th>
+                        <th>Change</th>
+                        <th>% Change</th>
+                        <th>Volume</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-table">
+                    <tr><td colspan="6">Loading data... it takes 1 minute to load</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
